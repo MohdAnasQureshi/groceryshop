@@ -10,7 +10,7 @@ const customerSchema = new Schema(
     },
     customerOf: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "ShopOwner",
     },
     customerContact: {
       type: String,
