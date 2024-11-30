@@ -7,7 +7,6 @@ const shopOwnerSchema = new Schema(
     shopOwnerName: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       index: true,
