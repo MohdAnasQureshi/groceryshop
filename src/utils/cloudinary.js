@@ -9,18 +9,19 @@ cloudinary.config({
 });
 
 // Upload an image
-const uploadOnCloudinary = async (localFilePath) => {
+const uploadOnCloudinary = async (shopOwnerPhotoLocalpath) => {
   try {
-    if (!localFilePath) return null;
+    if (!shopOwnerPhotoLocalpath) return null;
     // upload the file on cloudinary
-    const response = await cloudinary.uploader.upload(localFilePath, {
+    const response = await cloudinary.uploader.upload(shopOwnerPhotoLocalpath, {
       resource_type: "auto",
     });
     // file has been uploaded successfully
-    console.log("File is uploaded on cloudinary", response.url);
+    // console.log("File is uploaded on cloudinary", response.url);
+    fs.unlinkSync(shopOwnerPhotoLocalpath);
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath); // remove the locally saved temporary file from the server as the upload operation failed
+    fs.unlinkSync(shopOwnerPhotoLocalpath); // remove the locally saved temporary file from the server as the upload operation failed
     return null;
   }
 };

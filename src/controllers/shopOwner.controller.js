@@ -6,8 +6,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 const registerShopOwner = asyncHandler(async (req, res) => {
   // get user details from frontend
-  const { fullName, email, shopOwnerName, password } = req.body;
-  console.log(email);
+  const { fullName, email, shopOwnerName, password, shopOwnerPhoto } = req.body;
+  // console.log(email, shopOwnerPhoto);
 
   // validation - not empty
   if (
@@ -19,28 +19,31 @@ const registerShopOwner = asyncHandler(async (req, res) => {
   }
 
   // check if shopowner already exists : email
-  const existedShopOwner = ShopOwner.findOne({ email });
+  const existedShopOwner = await ShopOwner.findOne({ email });
   if (existedShopOwner) {
     throw new ApiError(409, "Shop owner with this email already exists!!");
   }
 
   // check for images
   const shopOwnerPhotoLocalpath = req.files?.shopOwnerPhoto[0]?.path;
+  console.log(shopOwnerPhotoLocalpath);
 
   if (!shopOwnerPhotoLocalpath) {
     throw new ApiError(400, "ShopOwner image file is required");
   }
 
   // upload them to cloudinary
-  const shopOwnerPhoto = await uploadOnCloudinary(shopOwnerPhotoLocalpath);
-  if (!shopOwnerPhoto) {
+  const cloudinaryShopOwnerPhoto = await uploadOnCloudinary(
+    shopOwnerPhotoLocalpath
+  );
+  if (!cloudinaryShopOwnerPhoto) {
     throw new ApiError(400, "ShopOwner image file is required");
   }
 
   // create user object - create entry in db
   const shopOwner = await ShopOwner.create({
     fullName,
-    shopOwnerPhoto: shopOwnerPhoto.url,
+    shopOwnerPhoto: cloudinaryShopOwnerPhoto.url,
     email,
     password,
     shopOwnerName: shopOwnerName.toLowerCase(),

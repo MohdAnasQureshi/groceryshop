@@ -4,10 +4,12 @@ import { upload } from "../middlewares/multer.middleware.js";
 const router = Router();
 
 router.route("/register").post(
-  upload.single({
-    name: "shopOwnerPhoto",
-    maxCount: 1,
-  }),
+  upload.fields([
+    {
+      name: "shopOwnerPhoto",
+      maxCount: 1,
+    },
+  ]),
   registerShopOwner
 );
 
