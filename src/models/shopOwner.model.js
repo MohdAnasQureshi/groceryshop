@@ -55,7 +55,7 @@ shopOwnerSchema.pre("save", async function (next) {
 });
 
 shopOwnerSchema.methods.isPasswordCorrect = async function (password) {
-  await bcrypt.compare(password, this.password);
+  return await bcrypt.compare(password, this.password);
 };
 
 shopOwnerSchema.methods.generateAccessToken = function () {
