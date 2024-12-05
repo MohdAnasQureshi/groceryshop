@@ -1,7 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ShopOwner } from "../models/shopOwner.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -151,7 +154,7 @@ const logoutShopOwner = asyncHandler(async (req, res) => {
   await ShopOwner.findByIdAndUpdate(
     req.shopOwner._id,
     {
-      $set: { refreshToken: undefined },
+      $unset: { refreshToken: 1 },
     },
     {
       new: true,
@@ -241,17 +244,23 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentShopOwner = asyncHandler(async (req, res) => {
   return res
     .status(200)
-    .json(200, req.shopOwner, "Current Shop Owner fetched successfully");
+    .json(
+      new ApiResponse(
+        200,
+        req.shopOwner,
+        "Current Shop Owner fetched successfully"
+      )
+    );
 });
 
-const updateShopOwner = asyncHandler(async (req, res) => {
+const updateShopOwnerDetails = asyncHandler(async (req, res) => {
   const { shopOwnerName, fullName, email } = req.body;
 
   if (!email || !fullName || !shopOwnerName) {
     throw new ApiError(400, "All fields are required");
   }
 
-  const updatedShopOwner = ShopOwner.findByIdAndUpdate(
+  const updatedShopOwner = await ShopOwner.findByIdAndUpdate(
     req.shopOwner?._id,
     {
       $set: {
@@ -281,6 +290,15 @@ const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
   if (!newShopOwnerPhotoLocalPath) {
     throw new ApiError(400, "Shop Owner Photo is missing");
   }
+
+  const parts = req.shopOwner.shopOwnerPhoto.split("/upload/");
+  console.log(parts);
+  const path = parts[1]; //.substring(0, path.lastIndexOf("."));
+  const public_id = path.split(".")[0].split("/")[1];
+  console.log(public_id);
+  const deletedPhoto = await deleteFromCloudinary(public_id);
+  console.log(deletedPhoto);
+
   const shopOwnerPhoto = await uploadOnCloudinary(newShopOwnerPhotoLocalPath);
 
   if (!shopOwnerPhoto.url) {
@@ -311,6 +329,6 @@ export {
   refreshAccessToken,
   changeCurrentPassword,
   getCurrentShopOwner,
-  updateShopOwner,
+  updateShopOwnerDetails,
   updateShopOwnerPhoto,
 };

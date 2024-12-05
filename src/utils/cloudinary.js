@@ -26,4 +26,14 @@ const uploadOnCloudinary = async (shopOwnerPhotoLocalpath) => {
   }
 };
 
-export { uploadOnCloudinary };
+const deleteFromCloudinary = async (shopOwnerPhotoPublicId) => {
+  try {
+    if (!shopOwnerPhotoPublicId) return null;
+    const response = cloudinary.uploader.destroy(shopOwnerPhotoPublicId);
+    return response;
+  } catch (error) {
+    return null;
+  }
+};
+
+export { uploadOnCloudinary, deleteFromCloudinary };
