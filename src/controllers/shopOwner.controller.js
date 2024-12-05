@@ -183,6 +183,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
+    // console.log(decodedToken, incomingRefreshToken);
 
     const shopOwner = await ShopOwner.findById(decodedToken?._id);
     if (!shopOwner) {
@@ -198,7 +199,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       secure: true,
     };
 
-    const { accessToken, newRefreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessAndRefreshToken(shopOwner._id);
     return res
       .status(200)
@@ -207,10 +208,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          {
-            accessToken,
-            refreshToken: newRefreshToken,
-          },
+          { accessToken, refreshToken: newRefreshToken },
           "Access token refershed successfully"
         )
       );
@@ -219,9 +217,100 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword) {
+    throw new ApiError(401, "new password doesnot match with confirm password");
+  }
+
+  const shopOwner = await ShopOwner.findById(req.shopOwner?._id);
+  const isPasswordCorrect = await shopOwner.isPasswordCorrect(currentPassword);
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid current password");
+  }
+
+  shopOwner.password = newPassword;
+  await shopOwner.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurrentShopOwner = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(200, req.shopOwner, "Current Shop Owner fetched successfully");
+});
+
+const updateShopOwner = asyncHandler(async (req, res) => {
+  const { shopOwnerName, fullName, email } = req.body;
+
+  if (!email || !fullName || !shopOwnerName) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const updatedShopOwner = ShopOwner.findByIdAndUpdate(
+    req.shopOwner?._id,
+    {
+      $set: {
+        fullName,
+        email,
+        shopOwnerName,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password");
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedShopOwner,
+        "Shop Owner  details updated successfully"
+      )
+    );
+});
+
+const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
+  const newShopOwnerPhotoLocalPath = req.file?.path;
+  if (!newShopOwnerPhotoLocalPath) {
+    throw new ApiError(400, "Shop Owner Photo is missing");
+  }
+  const shopOwnerPhoto = await uploadOnCloudinary(newShopOwnerPhotoLocalPath);
+
+  if (!shopOwnerPhoto.url) {
+    throw new ApiError(400, "Error while uploading the photo");
+  }
+
+  const shopOwner = await ShopOwner.findByIdAndUpdate(
+    req.shopOwner?._id,
+    {
+      $set: {
+        shopOwnerPhoto: shopOwnerPhoto.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, shopOwner, "Shop Owner photo successfully updated")
+    );
+});
+
 export {
   registerShopOwner,
   loginShopOwner,
   logoutShopOwner,
   refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentShopOwner,
+  updateShopOwner,
+  updateShopOwnerPhoto,
 };
