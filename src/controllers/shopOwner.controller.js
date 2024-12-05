@@ -293,7 +293,7 @@ const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
 
   const parts = req.shopOwner.shopOwnerPhoto.split("/upload/");
   console.log(parts);
-  const path = parts[1]; //.substring(0, path.lastIndexOf("."));
+  const path = parts[1];
   const public_id = path.split(".")[0].split("/")[1];
   console.log(public_id);
   const deletedPhoto = await deleteFromCloudinary(public_id);
