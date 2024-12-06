@@ -222,12 +222,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
-
+  console.log(currentPassword, newPassword, confirmPassword);
   if (newPassword !== confirmPassword) {
     throw new ApiError(401, "new password doesnot match with confirm password");
   }
 
   const shopOwner = await ShopOwner.findById(req.shopOwner?._id);
+
   const isPasswordCorrect = await shopOwner.isPasswordCorrect(currentPassword);
   if (!isPasswordCorrect) {
     throw new ApiError(400, "Invalid current password");
@@ -242,12 +243,54 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentShopOwner = asyncHandler(async (req, res) => {
+  const currentShopOwner = await ShopOwner.aggregate([
+    {
+      $match: {
+        shopOwnerName: req.shopOwner?.shopOwnerName,
+      },
+    },
+    {
+      $lookup: {
+        from: "customers",
+        localField: "_id",
+        foreignField: "shopOwner_id",
+        as: "shopOwnerCustomers",
+      },
+    },
+    {
+      $addFields: {
+        shopOwnerCustomersCount: {
+          $size: "$shopOwnerCustomers",
+        },
+        shopOwnerCustomers: {
+          $ifNull: ["$shopOwnerCustomers", []],
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        email: 1,
+        shopOwnerName: 1,
+        shopOwnerPhoto: 1,
+        shopOwnerCustomersCount: 1,
+        shopOwnerCustomers: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
+
+  if (!currentShopOwner?.length) {
+    throw new ApiError(404, "Shop Owner doesnot exists");
+  }
+
   return res
     .status(200)
     .json(
       new ApiResponse(
         200,
-        req.shopOwner,
+        currentShopOwner[0],
         "Current Shop Owner fetched successfully"
       )
     );
@@ -256,7 +299,7 @@ const getCurrentShopOwner = asyncHandler(async (req, res) => {
 const updateShopOwnerDetails = asyncHandler(async (req, res) => {
   const { shopOwnerName, fullName, email } = req.body;
 
-  if (!email || !fullName || !shopOwnerName) {
+  if (!(email || fullName || shopOwnerName)) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -291,14 +334,6 @@ const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Shop Owner Photo is missing");
   }
 
-  const parts = req.shopOwner.shopOwnerPhoto.split("/upload/");
-  console.log(parts);
-  const path = parts[1];
-  const public_id = path.split(".")[0].split("/")[1];
-  console.log(public_id);
-  const deletedPhoto = await deleteFromCloudinary(public_id);
-  console.log(deletedPhoto);
-
   const shopOwnerPhoto = await uploadOnCloudinary(newShopOwnerPhotoLocalPath);
 
   if (!shopOwnerPhoto.url) {
@@ -314,6 +349,13 @@ const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password");
+
+  const parts = req.shopOwner.shopOwnerPhoto.split("/upload/");
+  // console.log(parts);
+  const path = parts[1];
+  const public_id = path.split(".")[0].split("/")[1];
+  // console.log(public_id);
+  await deleteFromCloudinary(public_id);
 
   return res
     .status(200)

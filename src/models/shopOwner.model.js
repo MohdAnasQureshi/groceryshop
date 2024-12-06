@@ -28,12 +28,12 @@ const shopOwnerSchema = new Schema(
       type: String, // cloudinary url
       required: true,
     },
-    shopCustomers: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Customer",
-      },
-    ],
+    // shopCustomers: [
+    //   {
+    //     type: Schema.Types.ObjectId,
+    //     ref: "Customer",
+    //   },
+    // ],
     password: {
       type: String,
       required: [true, "Password is required"],

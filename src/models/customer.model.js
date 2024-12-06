@@ -8,7 +8,7 @@ const customerSchema = new Schema(
       required: true,
       index: true,
     },
-    customerOf: {
+    shopOwner_id: {
       type: Schema.Types.ObjectId,
       ref: "ShopOwner",
     },
