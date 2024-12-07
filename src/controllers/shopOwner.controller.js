@@ -253,7 +253,7 @@ const getCurrentShopOwner = asyncHandler(async (req, res) => {
       $lookup: {
         from: "customers",
         localField: "_id",
-        foreignField: "shopOwner_id",
+        foreignField: "shopOwnerId",
         as: "shopOwnerCustomers",
       },
     },

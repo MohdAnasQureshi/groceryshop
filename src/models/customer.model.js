@@ -8,9 +8,10 @@ const customerSchema = new Schema(
       required: true,
       index: true,
     },
-    shopOwner_id: {
+    shopOwnerId: {
       type: Schema.Types.ObjectId,
       ref: "ShopOwner",
+      required: true,
     },
     customerContact: {
       type: String,

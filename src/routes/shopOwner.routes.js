@@ -1,4 +1,5 @@
 import { Router } from "express";
+import customerRouter from "./customer.routes.js";
 import {
   registerShopOwner,
   loginShopOwner,
@@ -34,4 +35,6 @@ router.route("/update-account").patch(verifyJWT, updateShopOwnerDetails);
 router
   .route("/change-shopOwnerPhoto")
   .patch(verifyJWT, upload.single("shopOwnerPhoto"), updateShopOwnerPhoto);
+
+router.use("/customers", customerRouter);
 export default router;
