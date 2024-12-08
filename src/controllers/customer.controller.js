@@ -84,11 +84,22 @@ const editCustomer = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Customer id is required");
   }
 
+  if (!(customerName, customerContact)) {
+    throw new ApiError(400, "Customer name and contact are required");
+  }
+  const existingCustomer = await Customer.findOne({
+    customerName: customerName.toLowerCase(),
+    shopOwnerId,
+  });
+  if (existingCustomer) {
+    throw new ApiError(400, "Customer with this name already exists!");
+  }
+
   const updatedCustomer = await Customer.findByIdAndUpdate(
     customerId,
     {
       $set: {
-        customerName,
+        customerName: customerName.toLowerCase(),
         customerContact,
       },
     },

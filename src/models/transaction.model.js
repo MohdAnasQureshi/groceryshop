@@ -17,15 +17,11 @@ const transactionSchema = new Schema(
       enum: ["debt", "payment"],
       required: true,
     },
-    debtAmount: {
+    amount: {
       type: Number,
       required: true,
     },
-    paymentAmount: {
-      type: Number,
-      required: true,
-    },
-    date: {
+    transactionDate: {
       type: Date,
       default: Date.now,
     },

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import customerRouter from "./customer.routes.js";
+import transactionRouter from "./transaction.routes.js";
 import {
   registerShopOwner,
   loginShopOwner,
@@ -37,4 +38,5 @@ router
   .patch(verifyJWT, upload.single("shopOwnerPhoto"), updateShopOwnerPhoto);
 
 router.use("/customers", customerRouter);
+router.use("/transactions", transactionRouter);
 export default router;
