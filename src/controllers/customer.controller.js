@@ -50,4 +50,58 @@ const addCustomer = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, createdCustomer, "Customer added successfully"));
 });
 
-export { addCustomer };
+// delete a customer by a logged in shop Owner
+
+const deleteCustomer = asyncHandler(async (req, res) => {
+  const shopOwnerId = req.shopOwner.id;
+  const { customerId } = req.params;
+  if (!customerId) {
+    throw new ApiError(400, "Customer Id is required");
+  }
+  // find the customer by id and shop id
+  const customer = await Customer.findOne({
+    _id: customerId,
+    shopOwnerId: shopOwnerId,
+  });
+
+  if (!customer) {
+    throw new ApiError(404, "Customer not found or not authorized to delete");
+  }
+
+  // Delete the customer
+  await Customer.deleteOne({ _id: customerId });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Customer deleted successfully"));
+});
+
+const editCustomer = asyncHandler(async (req, res) => {
+  const shopOwnerId = req.shopOwner.id;
+  const { customerId } = req.params;
+  const { customerName, customerContact } = req.body;
+
+  if (!customerId) {
+    throw new ApiError(400, "Customer id is required");
+  }
+
+  const updatedCustomer = await Customer.findByIdAndUpdate(
+    customerId,
+    {
+      $set: {
+        customerName,
+        customerContact,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedCustomer, "Customer updated successfully")
+    );
+});
+
+export { addCustomer, deleteCustomer, editCustomer };
