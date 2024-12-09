@@ -47,10 +47,96 @@ const addTransaction = asyncHandler(async (req, res) => {
   // Save the transaction
   await transaction.save();
 
-  res
+  customer.totalOutstandingDebt =
+    transaction.transactionType === "debt"
+      ? customer.totalOutstandingDebt + transaction.amount
+      : customer.totalOutstandingDebt - transaction.amount;
+
+  await customer.save();
+
+  return res
     .status(201)
     .json(
       new ApiResponse(200, transaction, "Transaction added successfully!!")
     );
 });
-export { addTransaction };
+
+const getCustomerTransactions = asyncHandler(async (req, res) => {
+  const shopOwnerId = req.shopOwner.id;
+  const { customerId } = req.params;
+  if (!customerId) {
+    throw new ApiError(400, "Customer Id is required");
+  }
+
+  // check whether the customer exists and belongs to the shop owner
+  const customer = await Customer.findOne({
+    _id: customerId,
+    shopOwnerId,
+  });
+  if (!customer) {
+    throw new ApiError(404, "Customer not found or not authorized");
+  }
+
+  // fetch all transactions for the customer
+
+  const transactions = await Transaction.find({ customerId }).sort({
+    transactionDate: -1,
+  });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, transactions, "Transactions fetched successfully")
+    );
+});
+
+const editTransaction = asyncHandler(async (req, res) => {
+  const { customerId, transactionId } = req.params;
+  const { amount, transactionType } = req.body;
+
+  if (!amount || !transactionType) {
+    throw new ApiError(400, "Amount and transaction type required");
+  }
+
+  // fetch the transaction to be updated
+  const transaction = await Transaction.findOne({
+    _id: transactionId,
+    customerId: customerId,
+  });
+
+  if (!transaction) {
+    throw new ApiError(404, "Transaction not found for this customer");
+  }
+
+  // update the transaction details
+
+  transaction.amount = amount;
+  transaction.transactionType = transactionType;
+  await transaction.save();
+
+  const transactions = await Transaction.find({ customerId });
+
+  const totalOutstandingDebt = transactions.reduce((total, transaction) => {
+    return transaction.transactionType === "debt"
+      ? total + transaction.amount
+      : total - transaction.amount;
+  }, 0);
+
+  await Customer.findByIdAndUpdate(
+    { _id: customerId },
+    {
+      $set: {
+        totalOutstandingDebt,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, transaction, "Updated the transaction details"));
+});
+
+export { addTransaction, getCustomerTransactions, editTransaction };

@@ -3,6 +3,7 @@ import { Customer } from "../models/customer.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Transaction } from "../models/transaction.model.js";
 
 // Add a customer by a shopOwner
 const addCustomer = asyncHandler(async (req, res) => {
@@ -70,6 +71,7 @@ const deleteCustomer = asyncHandler(async (req, res) => {
 
   // Delete the customer
   await Customer.deleteOne({ _id: customerId });
+  await Transaction.deleteMany({ customerId });
   return res
     .status(200)
     .json(new ApiResponse(200, "Customer deleted successfully"));
