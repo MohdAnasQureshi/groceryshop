@@ -4,13 +4,13 @@ const sendEmailtoShopOwner = async ({ to, subject, text }) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "qureshianas4710@gmail.com",
-      pass: "qftpnasnaihkdxln",
+      user: process.env.GMAIL,
+      pass: process.env.GMAIL_PASSWORD,
     },
   });
 
   const mailOptions = {
-    from: "qureshianas4710@gmail.com",
+    from: process.env.GMAIL,
     to,
     subject,
     text,
