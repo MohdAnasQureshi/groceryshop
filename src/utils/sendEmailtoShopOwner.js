@@ -7,8 +7,8 @@ const sendEmailtoShopOwner = async ({ to, subject, text }) => {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_PASSWORD,
     },
-    logger: true,
-    debug: true,
+    // logger: true,
+    // debug: true,
   });
 
   const mailOptions = {

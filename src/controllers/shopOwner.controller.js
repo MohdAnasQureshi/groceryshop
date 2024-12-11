@@ -1,5 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
+// import { verifyEmail } from "../utils/verifyEmail.js";
 import { ShopOwner } from "../models/shopOwner.model.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
@@ -46,6 +47,11 @@ const registerShopOwner = asyncHandler(async (req, res) => {
   if (existedShopOwner) {
     throw new ApiError(409, "Shop owner with this email already exists!!");
   }
+
+  // const emailValidationResult = await verifyEmail(email);
+  // if (emailValidationResult.status !== "valid") {
+  //   throw new ApiError(400, "Invalid email address");
+  // }
 
   // check for images
   const shopOwnerPhotoLocalpath = req.files?.shopOwnerPhoto[0]?.path;
