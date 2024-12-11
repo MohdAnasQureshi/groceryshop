@@ -7,9 +7,6 @@ import {
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
-import bcrypt from "bcrypt";
-import { sendEmailtoShopOwner } from "../utils/sendEmailtoShopOwner.js";
 
 const generateAccessAndRefreshToken = async (shopOwnerId) => {
   try {
@@ -367,72 +364,6 @@ const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
     );
 });
 
-const forgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-  const shopOwner = await ShopOwner.findOne({ email });
-  if (!shopOwner) {
-    throw new ApiError(404, "No shop owner found with this email");
-  }
-
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  // console.log(resetToken);
-  shopOwner.resetPasswordToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-  shopOwner.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-  await shopOwner.save();
-
-  const resetURL = `${req.protocol}://${req.get("host")}/api/v1/shopOwners/reset-password/${resetToken}`;
-
-  // send email with the reset link
-  try {
-    await sendEmailtoShopOwner({
-      to: shopOwner.email,
-      subject: "Password reset request",
-      text: `You requested a password reset. Click the link to reset your password: ${resetURL}`,
-    });
-    return res.status(200).json({ message: "Reset link send to your email" });
-  } catch (error) {
-    shopOwner.resetPasswordToken = undefined;
-    shopOwner.resetPasswordExpires = undefined;
-    await shopOwner.save();
-    return res.status(500).json({ message: "Email could not be sent", error });
-  }
-});
-
-const resetPassword = asyncHandler(async (req, res) => {
-  const { token } = req.params;
-  const { newPassword, confirmPassword } = req.body;
-  if (newPassword !== confirmPassword) {
-    throw new ApiError(400, "New password and confirm password do not match");
-  }
-
-  // hash the token and find the shopOwner
-
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-  const shopOwner = await ShopOwner.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpires: { $gt: Date.now() }, // Ensure token is not expired
-  });
-
-  if (!shopOwner) {
-    throw new ApiError(400, "Invalid or expired token");
-  }
-
-  // update password
-
-  shopOwner.password = newPassword;
-  shopOwner.resetPasswordToken = undefined;
-  shopOwner.resetPasswordExpires = undefined;
-  await shopOwner.save({ validateBeforeSave: false });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, shopOwner, "Password has been reset"));
-});
-
 export {
   registerShopOwner,
   loginShopOwner,
@@ -442,6 +373,4 @@ export {
   getCurrentShopOwner,
   updateShopOwnerDetails,
   updateShopOwnerPhoto,
-  forgotPassword,
-  resetPassword,
 };

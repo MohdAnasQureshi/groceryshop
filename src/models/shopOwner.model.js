@@ -41,8 +41,6 @@ const shopOwnerSchema = new Schema(
     refreshToken: {
       type: String,
     },
-    resetPasswordToken: String,
-    resetPasswordExpires: String,
   },
   {
     timestamps: true,
