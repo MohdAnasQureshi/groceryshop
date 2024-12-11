@@ -10,6 +10,8 @@ import {
   getCurrentShopOwner,
   updateShopOwnerDetails,
   updateShopOwnerPhoto,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/shopOwner.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -36,7 +38,8 @@ router.route("/update-account").patch(verifyJWT, updateShopOwnerDetails);
 router
   .route("/change-shopOwnerPhoto")
   .patch(verifyJWT, upload.single("shopOwnerPhoto"), updateShopOwnerPhoto);
-
+router.route("/forgot-password").post(forgotPassword);
+router.route("/reset-password/:token").post(resetPassword);
 router.use("/customers", customerRouter);
 router.use("/transactions", transactionRouter);
 export default router;
