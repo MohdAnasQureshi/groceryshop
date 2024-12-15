@@ -3,14 +3,15 @@ import { ApiError } from "../utils/ApiError.js";
 // import { verifyEmail } from "../utils/verifyEmail.js";
 import { ShopOwner } from "../models/shopOwner.model.js";
 import crypto from "crypto";
-import bcrypt from "bcrypt";
 import { sendEmailtoShopOwner } from "../utils/sendEmailtoShopOwner.js";
+import { oauth2client } from "../config/googleAuthConfig.js";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 const generateAccessAndRefreshToken = async (shopOwnerId) => {
   try {
@@ -231,7 +232,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
-  console.log(currentPassword, newPassword, confirmPassword);
+  // console.log(currentPassword, newPassword, confirmPassword);
   if (newPassword !== confirmPassword) {
     throw new ApiError(401, "new password doesnot match with confirm password");
   }
@@ -255,7 +256,8 @@ const getCurrentShopOwner = asyncHandler(async (req, res) => {
   const currentShopOwner = await ShopOwner.aggregate([
     {
       $match: {
-        shopOwnerName: req.shopOwner?.shopOwnerName,
+        _id: req.shopOwner?._id,
+        // shopOwnerName: req.shopOwner?.shopOwnerName,
       },
     },
     {
@@ -362,7 +364,7 @@ const updateShopOwnerPhoto = asyncHandler(async (req, res) => {
   const parts = req.shopOwner.shopOwnerPhoto.split("/upload/");
   // console.log(parts);
   const path = parts[1];
-  const public_id = path.split(".")[0].split("/")[1];
+  const public_id = path?.split(".")[0]?.split("/")[1];
   // console.log(public_id);
   await deleteFromCloudinary(public_id);
 
@@ -428,6 +430,80 @@ const resetPassword = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, shopOwner, "Password has been reset"));
 });
 
+const googleAuth = asyncHandler(async (req, res) => {
+  const { code } = req.query;
+  const googleResponse = await oauth2client.getToken({
+    code,
+    redirect_uri: process.env.REDIRECT_URI,
+  });
+  oauth2client.setCredentials(googleResponse.tokens);
+
+  const shopOwnergoogleDetails = await axios.get(
+    `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleResponse.tokens.access_token}`
+  );
+  // console.log(shopOwnergoogleDetails);
+  const { email, name, picture, id: googleId } = shopOwnergoogleDetails.data;
+  let shopOwner = await ShopOwner.findOne({ email, googleId });
+  console.log(shopOwner);
+  if (!shopOwner) {
+    shopOwner = await ShopOwner.create({
+      shopOwnerName: name,
+      email,
+      shopOwnerPhoto: picture,
+      googleId,
+    });
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    shopOwner._id
+  );
+  console.log(accessToken, refreshToken);
+
+  const loggedInShopOwner = await ShopOwner.findById(shopOwner._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          shopOwner: loggedInShopOwner,
+          accessToken,
+          refreshToken,
+        },
+        "ShopOwner logged in successfully with Google auth"
+      )
+    );
+});
+
+const setPassword = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const shopOwner = await ShopOwner.findOne({ email });
+
+  if (!shopOwner) {
+    throw new ApiResponse(404, "ShopOwner not found");
+  }
+
+  if (!shopOwner.googleId) {
+    throw new ApiError("This shop owner is not a Google user ");
+  }
+
+  shopOwner.password = password;
+  await shopOwner.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password set Successfully"));
+});
+
 export {
   registerShopOwner,
   loginShopOwner,
@@ -439,4 +515,6 @@ export {
   updateShopOwnerPhoto,
   forgotPassword,
   resetPassword,
+  googleAuth,
+  setPassword,
 };

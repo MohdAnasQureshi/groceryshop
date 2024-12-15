@@ -6,7 +6,7 @@ const shopOwnerSchema = new Schema(
   {
     shopOwnerName: {
       type: String,
-      required: true,
+      // required: true,
       lowercase: true,
       trim: true,
       index: true,
@@ -18,9 +18,18 @@ const shopOwnerSchema = new Schema(
       lowercase: true,
       trim: true,
     },
+    googleId: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
     fullName: {
       type: String,
-      required: true,
+      // required: true,
       index: true,
       trim: true,
     },
@@ -36,7 +45,7 @@ const shopOwnerSchema = new Schema(
     // ],
     password: {
       type: String,
-      required: [true, "Password is required"],
+      // required: [true, "Password is required"],
     },
     refreshToken: {
       type: String,
@@ -51,8 +60,9 @@ const shopOwnerSchema = new Schema(
 
 shopOwnerSchema.pre("save", async function (next) {
   if (!this.isModified("password")) next();
-
-  this.password = await bcrypt.hash(this.password, 10);
+  if (this.password) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
   next();
 });
 

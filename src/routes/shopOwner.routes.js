@@ -12,6 +12,8 @@ import {
   updateShopOwnerPhoto,
   forgotPassword,
   resetPassword,
+  googleAuth,
+  setPassword,
 } from "../controllers/shopOwner.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -26,6 +28,8 @@ router.route("/register").post(
   ]),
   registerShopOwner
 );
+
+router.route("/auth/google/callback").get(googleAuth);
 
 router.route("/login").post(loginShopOwner);
 
