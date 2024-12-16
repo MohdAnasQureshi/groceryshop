@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { type } from "os";
 
 const transactionSchema = new Schema(
   {
@@ -20,6 +21,9 @@ const transactionSchema = new Schema(
     amount: {
       type: Number,
       required: true,
+    },
+    transactionDetails: {
+      type: String,
     },
     transactionDate: {
       type: Date,

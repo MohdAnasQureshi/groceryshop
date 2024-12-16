@@ -1,6 +1,7 @@
 import { Router } from "express";
 import customerRouter from "./customer.routes.js";
 import transactionRouter from "./transaction.routes.js";
+import stockOrderListRouter from "./stockOrderList.routes.js";
 import {
   registerShopOwner,
   loginShopOwner,
@@ -14,10 +15,13 @@ import {
   resetPassword,
   googleAuth,
   setPassword,
+  sendVerificationOTP,
 } from "../controllers/shopOwner.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 const router = Router();
+
+router.route("/send-verification-otp").post(sendVerificationOTP);
 
 router.route("/register").post(
   upload.fields([
@@ -30,6 +34,7 @@ router.route("/register").post(
 );
 
 router.route("/auth/google/callback").get(googleAuth);
+router.route("/auth/set-password").post(verifyJWT, setPassword);
 
 router.route("/login").post(loginShopOwner);
 
@@ -46,4 +51,5 @@ router.route("/forgot-password").post(forgotPassword);
 router.route("/reset-password/:token").post(resetPassword);
 router.use("/customers", customerRouter);
 router.use("/transactions", transactionRouter);
+router.use("/stockOrderLists", stockOrderListRouter);
 export default router;

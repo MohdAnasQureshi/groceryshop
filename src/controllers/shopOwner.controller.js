@@ -12,6 +12,8 @@ import {
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import axios from "axios";
+import bcrypt from "bcrypt";
+import { TempOTP } from "../models/tempOTP.model.js";
 
 const generateAccessAndRefreshToken = async (shopOwnerId) => {
   try {
@@ -29,9 +31,38 @@ const generateAccessAndRefreshToken = async (shopOwnerId) => {
   }
 };
 
+const sendVerificationOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const existedShopOwner = await ShopOwner.findOne({ email });
+  if (existedShopOwner) {
+    throw new ApiError(409, "Shop owner with this email already exists!!");
+  }
+  const verifyEmailOTP = crypto.randomInt(100000, 999999).toString();
+
+  const otpData = await TempOTP.create({ email, otp: verifyEmailOTP });
+
+  try {
+    await sendEmailtoShopOwner({
+      to: email,
+      subject: "Your OTP to register at kiranaKhata.in",
+      text: `Your OTP is ${verifyEmailOTP}. It is valid for 5 minutes. Do not share it with anyone `,
+    });
+    return res.status(200).json({ message: "OTP send to your email" });
+  } catch (error) {
+    await TempOTP.deleteOne({ _id: otpData._id, email });
+    return res.status(500).json({
+      message:
+        "Email could not be sent. Check whether the email entered by you is a valid google email!!",
+      error,
+    });
+  }
+});
+
 const registerShopOwner = asyncHandler(async (req, res) => {
   // get user details from frontend
-  const { fullName, email, shopOwnerName, password, shopOwnerPhoto } = req.body;
+  const { fullName, email, shopOwnerName, password, shopOwnerPhoto, inputOtp } =
+    req.body;
   // console.log(email, shopOwnerPhoto);
 
   // validation - not empty
@@ -56,10 +87,27 @@ const registerShopOwner = asyncHandler(async (req, res) => {
 
   // check for images
   const shopOwnerPhotoLocalpath = req.files?.shopOwnerPhoto[0]?.path;
-  console.log(shopOwnerPhotoLocalpath);
+  // console.log(shopOwnerPhotoLocalpath);
 
   if (!shopOwnerPhotoLocalpath) {
     throw new ApiError(400, "ShopOwner image file is required");
+  }
+
+  const tempRecord = await TempOTP.findOne({ email });
+  if (!tempRecord) {
+    throw new ApiError(400, "OTP expired or invalid");
+  }
+
+  const isOTPValid = await bcrypt.compare(inputOtp, tempRecord.otp);
+  const isOTPExpired = Date.now() > tempRecord.expiresAt;
+
+  if (isOTPExpired) {
+    await TempOTP.deleteOne({ email });
+    throw new ApiError(400, "OTP has expired");
+  }
+
+  if (!isOTPValid) {
+    throw new ApiError(401, "Incorrect OTP entered");
   }
 
   // upload them to cloudinary
@@ -79,6 +127,7 @@ const registerShopOwner = asyncHandler(async (req, res) => {
     shopOwnerName: shopOwnerName.toLowerCase(),
   });
 
+  await TempOTP.deleteOne({ _id: tempRecord._id, email });
   // remove password and refresh token field from response
   const createdShopOwner = await ShopOwner.findById(shopOwner._id).select(
     "-password -refreshToken"
@@ -485,7 +534,12 @@ const googleAuth = asyncHandler(async (req, res) => {
 });
 
 const setPassword = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, confirmPassword } = req.body;
+
+  if (password !== confirmPassword) {
+    throw new ApiError(400, "The passwords doesnot match");
+  }
+
   const shopOwner = await ShopOwner.findOne({ email });
 
   if (!shopOwner) {
@@ -493,18 +547,29 @@ const setPassword = asyncHandler(async (req, res) => {
   }
 
   if (!shopOwner.googleId) {
-    throw new ApiError("This shop owner is not a Google user ");
+    throw new ApiError(400, "This shop owner is not a Google user ");
+  }
+
+  if (shopOwner.password) {
+    throw new ApiError(401, "Password already set by user");
   }
 
   shopOwner.password = password;
-  await shopOwner.save();
+  await shopOwner.save({ validateBeforeSave: false });
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "Password set Successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        {},
+        "Password set Successfully for google email user"
+      )
+    );
 });
 
 export {
+  sendVerificationOTP,
   registerShopOwner,
   loginShopOwner,
   logoutShopOwner,

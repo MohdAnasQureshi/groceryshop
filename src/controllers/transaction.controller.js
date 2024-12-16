@@ -11,7 +11,7 @@ const addTransaction = asyncHandler(async (req, res) => {
 
   // Extract customerId from the request params and transaction details from the body
   const { customerId } = req.params;
-  const { amount, transactionType } = req.body;
+  const { amount, transactionType, transactionDetails } = req.body;
 
   // Validate input
   if (!customerId) {
@@ -42,6 +42,7 @@ const addTransaction = asyncHandler(async (req, res) => {
     customerId,
     amount,
     transactionType,
+    transactionDetails,
   });
 
   // Save the transaction
@@ -92,7 +93,7 @@ const getCustomerTransactions = asyncHandler(async (req, res) => {
 
 const editTransaction = asyncHandler(async (req, res) => {
   const { customerId, transactionId } = req.params;
-  const { amount, transactionType } = req.body;
+  const { amount, transactionType, transactionDetails } = req.body;
 
   if (!amount || !transactionType) {
     throw new ApiError(400, "Amount and transaction type required");
@@ -112,6 +113,7 @@ const editTransaction = asyncHandler(async (req, res) => {
 
   transaction.amount = amount;
   transaction.transactionType = transactionType;
+  transaction.transactionDetails = transactionDetails;
   await transaction.save();
 
   const transactions = await Transaction.find({ customerId });
