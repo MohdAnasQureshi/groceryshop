@@ -117,4 +117,17 @@ const editCustomer = asyncHandler(async (req, res) => {
     );
 });
 
-export { addCustomer, deleteCustomer, editCustomer };
+const getAllCustomers = asyncHandler(async (req, res) => {
+  const shopOwnerId = req.shopOwner._id;
+  const allCustomers = await Customer.find({ shopOwnerId });
+  if (!allCustomers) {
+    throw new ApiError(402, "Customers list not found or empty");
+  }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, allCustomers, "Customers list fetched successfully")
+    );
+});
+
+export { addCustomer, deleteCustomer, editCustomer, getAllCustomers };

@@ -1,7 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-
+import { errorHandler } from "./utils/ApiError.js";
 const app = express();
 
 app.use(
@@ -23,5 +23,5 @@ import shopOwnerRouter from "./routes/shopOwner.routes.js";
 // routes declaration
 
 app.use("/api/v1/shopOwners", shopOwnerRouter);
-
+app.use(errorHandler);
 export { app };

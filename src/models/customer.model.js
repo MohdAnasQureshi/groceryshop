@@ -15,7 +15,7 @@ const customerSchema = new Schema(
     },
     customerContact: {
       type: String,
-      required: true,
+      // required: true,
     },
     totalOutstandingDebt: {
       type: Number,
