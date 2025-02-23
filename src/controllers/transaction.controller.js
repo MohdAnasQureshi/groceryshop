@@ -81,7 +81,7 @@ const getCustomerTransactions = asyncHandler(async (req, res) => {
   // fetch all transactions for the customer
 
   const transactions = await Transaction.find({ customerId }).sort({
-    transactionDate: -1,
+    transactionDate: 1,
   });
 
   return res
