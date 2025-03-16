@@ -12,7 +12,7 @@ const addStockList = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Stock list empty! Nothing to add");
   }
   const newStock = await StockOrderList.create({
-    stockList: stockList.toLowerCase(),
+    stockList: stockList,
     shopOwnerId,
   });
 
@@ -39,7 +39,7 @@ const editStockList = asyncHandler(async (req, res) => {
     { _id: stockListId },
     {
       $set: {
-        stockList: editedStockList.toLowerCase(),
+        stockList: editedStockList,
       },
     },
     {
