@@ -2,6 +2,7 @@ import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
   addTransaction,
+  deleteTransaction,
   editTransaction,
   getCustomerTransactions,
 } from "../controllers/transaction.controller.js";
@@ -15,5 +16,8 @@ router
 router
   .route("/edit-transaction/:customerId/:transactionId")
   .put(verifyJWT, editTransaction);
+router
+  .route("/delete-transaction/:customerId/:transactionId")
+  .delete(verifyJWT, deleteTransaction);
 
 export default router;

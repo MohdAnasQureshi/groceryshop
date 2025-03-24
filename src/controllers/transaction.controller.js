@@ -109,6 +109,16 @@ const editTransaction = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Transaction not found for this customer");
   }
 
+  const transactions = await Transaction.find({ customerId });
+
+  let totalOutstandingDebt = transactions.reduce((total, transaction) => {
+    return transaction.transactionType === "debt"
+      ? total + transaction.amount
+      : total - transaction.amount;
+  }, 0);
+  if (transaction.transactionType === "debt")
+    totalOutstandingDebt = totalOutstandingDebt - transaction.amount;
+  else totalOutstandingDebt = totalOutstandingDebt + transaction.amount;
   // update the transaction details
 
   transaction.amount = amount;
@@ -116,14 +126,7 @@ const editTransaction = asyncHandler(async (req, res) => {
   transaction.transactionDetails = transactionDetails;
   await transaction.save();
 
-  const transactions = await Transaction.find({ customerId });
-
-  const totalOutstandingDebt = transactions.reduce((total, transaction) => {
-    return transaction.transactionType === "debt"
-      ? total + transaction.amount
-      : total - transaction.amount;
-  }, 0);
-
+  totalOutstandingDebt = totalOutstandingDebt + amount;
   await Customer.findByIdAndUpdate(
     { _id: customerId },
     {
@@ -141,4 +144,56 @@ const editTransaction = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, transaction, "Updated the transaction details"));
 });
 
-export { addTransaction, getCustomerTransactions, editTransaction };
+const deleteTransaction = asyncHandler(async (req, res) => {
+  const { customerId, transactionId } = req.params;
+
+  // fetch the transaction to be deleted
+  const transaction = await Transaction.findOne({
+    _id: transactionId,
+    customerId: customerId,
+  });
+
+  if (!transaction) {
+    throw new ApiError(
+      404,
+      "Transaction not found for this customer to delete"
+    );
+  }
+
+  const transactions = await Transaction.find({ customerId });
+
+  let totalOutstandingDebt = transactions.reduce((total, transaction) => {
+    return transaction.transactionType === "debt"
+      ? total + transaction.amount
+      : total - transaction.amount;
+  }, 0);
+  if (transaction.transactionType === "debt")
+    totalOutstandingDebt = totalOutstandingDebt - transaction.amount;
+  else totalOutstandingDebt = totalOutstandingDebt + transaction.amount;
+
+  await Transaction.deleteOne({
+    _id: transactionId,
+    customerId: customerId,
+  });
+
+  await Customer.findByIdAndUpdate(
+    { _id: customerId },
+    {
+      $set: {
+        totalOutstandingDebt,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  return res.status(200).json(new ApiResponse(200, "Deleted the transaction"));
+});
+
+export {
+  addTransaction,
+  getCustomerTransactions,
+  editTransaction,
+  deleteTransaction,
+};
