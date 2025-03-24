@@ -19,13 +19,19 @@ const addCustomer = asyncHandler(async (req, res) => {
   if (!shopOwner) {
     throw new ApiError(404, "Shop Owner not found");
   }
-  const customerNameInLowerCase = customerName.toLowerCase();
+  const normalizeName = (name) => name.toLowerCase().replace(/\s+/g, ""); // Remove spaces and lowercase
+
+  const normalizedCustomerName = normalizeName(customerName);
+
   // Check if the customer already exists with the same name
-  const existingCustomer = await Customer.findOne({
-    customerName: customerNameInLowerCase,
+  const existingCustomers = await Customer.find({
     shopOwnerId,
-  });
-  if (existingCustomer) {
+  }).lean();
+
+  const existingNames = existingCustomers.map((c) =>
+    normalizeName(c.customerName)
+  );
+  if (existingNames.includes(normalizedCustomerName)) {
     throw new ApiError(400, "Customer with this name already exists!");
   }
 
@@ -89,12 +95,21 @@ const editCustomer = asyncHandler(async (req, res) => {
   if (!(customerName || customerContact)) {
     throw new ApiError(400, "Customer name and contact are required");
   }
-  const existingCustomer = await Customer.findOne({
-    customerName: customerName.toLowerCase(),
+
+  const normalizedCustomerName = normalizeName(customerName);
+
+  // Find all customers of this shop owner
+  const existingCustomers = await Customer.find({
     shopOwnerId,
     _id: { $ne: customerId },
-  });
-  if (existingCustomer) {
+  }).lean(); // Fetch an array
+
+  // Normalize names of existing customers
+  const existingNames = existingCustomers.map((c) =>
+    normalizeName(c.customerName)
+  );
+
+  if (existingNames.includes(normalizedCustomerName)) {
     throw new ApiError(400, "Customer with this name already exists!");
   }
 
