@@ -95,6 +95,7 @@ const editCustomer = asyncHandler(async (req, res) => {
   if (!(customerName || customerContact)) {
     throw new ApiError(400, "Customer name and contact are required");
   }
+  const normalizeName = (name) => name.toLowerCase().replace(/\s+/g, ""); // Remove spaces and lowercase
 
   const normalizedCustomerName = normalizeName(customerName);
 
