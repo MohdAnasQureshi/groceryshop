@@ -109,27 +109,24 @@ const editTransaction = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Transaction not found for this customer");
   }
 
-  console.log(transaction.amount);
   const transactions = await Transaction.find({ customerId });
   let totalOutstandingDebt = transactions.reduce((total, transaction) => {
     return transaction.transactionType === "debt"
       ? total + transaction.amount
       : total - transaction.amount;
   }, 0);
-  console.log(totalOutstandingDebt);
+
   if (transaction.transactionType === "debt")
     totalOutstandingDebt = totalOutstandingDebt - transaction.amount;
-  console.log(totalOutstandingDebt);
+
   if (transaction.transactionType === "payment")
     totalOutstandingDebt = totalOutstandingDebt + transaction.amount;
-  console.log(totalOutstandingDebt);
 
   if (transactionType === "debt")
     totalOutstandingDebt = totalOutstandingDebt + amount;
-  console.log(totalOutstandingDebt);
+
   if (transactionType === "payment")
     totalOutstandingDebt = totalOutstandingDebt - amount;
-  console.log(totalOutstandingDebt);
 
   await Customer.findByIdAndUpdate(
     { _id: customerId },
