@@ -109,24 +109,28 @@ const editTransaction = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Transaction not found for this customer");
   }
 
+  console.log(transaction.amount);
   const transactions = await Transaction.find({ customerId });
-
   let totalOutstandingDebt = transactions.reduce((total, transaction) => {
     return transaction.transactionType === "debt"
       ? total + transaction.amount
       : total - transaction.amount;
   }, 0);
+  console.log(totalOutstandingDebt);
   if (transaction.transactionType === "debt")
     totalOutstandingDebt = totalOutstandingDebt - transaction.amount;
-  else totalOutstandingDebt = totalOutstandingDebt + transaction.amount;
-  // update the transaction details
+  console.log(totalOutstandingDebt);
+  if (transaction.transactionType === "payment")
+    totalOutstandingDebt = totalOutstandingDebt + transaction.amount;
+  console.log(totalOutstandingDebt);
 
-  transaction.amount = amount;
-  transaction.transactionType = transactionType;
-  transaction.transactionDetails = transactionDetails;
-  await transaction.save();
+  if (transactionType === "debt")
+    totalOutstandingDebt = totalOutstandingDebt + amount;
+  console.log(totalOutstandingDebt);
+  if (transactionType === "payment")
+    totalOutstandingDebt = totalOutstandingDebt - amount;
+  console.log(totalOutstandingDebt);
 
-  totalOutstandingDebt = totalOutstandingDebt + amount;
   await Customer.findByIdAndUpdate(
     { _id: customerId },
     {
@@ -138,6 +142,11 @@ const editTransaction = asyncHandler(async (req, res) => {
       new: true,
     }
   );
+
+  transaction.amount = amount;
+  transaction.transactionType = transactionType;
+  transaction.transactionDetails = transactionDetails;
+  await transaction.save();
 
   return res
     .status(200)
@@ -171,11 +180,6 @@ const deleteTransaction = asyncHandler(async (req, res) => {
     totalOutstandingDebt = totalOutstandingDebt - transaction.amount;
   else totalOutstandingDebt = totalOutstandingDebt + transaction.amount;
 
-  await Transaction.deleteOne({
-    _id: transactionId,
-    customerId: customerId,
-  });
-
   await Customer.findByIdAndUpdate(
     { _id: customerId },
     {
@@ -187,7 +191,10 @@ const deleteTransaction = asyncHandler(async (req, res) => {
       new: true,
     }
   );
-
+  await Transaction.deleteOne({
+    _id: transactionId,
+    customerId: customerId,
+  });
   return res.status(200).json(new ApiResponse(200, "Deleted the transaction"));
 });
 
